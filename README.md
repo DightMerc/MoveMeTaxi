@@ -1,29 +1,39 @@
-# README #
+MOVE ME
+==============
+JIRA (https://movemeuz.atlassian.net/jira/software/projects/MT/boards/1)
 
-This README would normally document whatever steps are necessary to get your application up and running.
+### What's included
 
-### What is this repository for? ###
-
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
-
-### How do I get set up? ###
-
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+ - Python 3.9.0
+ - Django 3.1.2
+ - PostgreSQL 13
+ - Daphne 3.0.1 
+ - Nginx 1.19.0
+ 
+### Docker
+ - Create `.env` file and configure this file
+     ```
+     $ cp .env.dist .env
+     ```
+ - Build a new image and run containers
+     ```
+     @dev:~$ docker-compose up -d --build
+     @prod:~$ docker-compose -f docker-compose.prod.yml up -d --build
+     ```
+ - Flush and migrate database
+     ```
+     @dev:~$ docker-compose exec web python manage.py flush --no-input
+     @dev:~$ docker-compose exec web python manage.py migrate
+     @prod:~$ docker-compose -f docker-compose.prod.yml exec web python manage.py flush --no-input
+     @prod:~$ docker-compose -f docker-compose.prod.yml exec web python manage.py migrate
+     ```
+ - Checking for errors in logs
+     ```
+     @dev:~$ docker-compose logs -f
+     @prod:~$ docker-compose -f docker-compose.prod.yml logs -f
+     ```
+ - Stop containers and bind volumes with the -v flag
+     ```
+     @dev:~$ docker-compose down -v
+     @prod:~$ docker-compose -f docker-compose.prod.yml down -v
+     ```
