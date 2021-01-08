@@ -47,6 +47,19 @@ class Device(models.Model):
         null=False
     )
 
+    verified = models.BooleanField(
+        default=False,
+        null=True,
+        blank=False
+    )
+
+    verification_code = models.CharField(
+        max_length=100,
+        default='',
+        null=True,
+        blank=True
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )
@@ -78,6 +91,12 @@ class Language(models.Model):
     title = models.CharField(
         max_length=100,
         default='',
+        null=False,
+        blank=False
+    )
+
+    active = models.BooleanField(
+        default=True,
         null=False,
         blank=False
     )
@@ -242,14 +261,21 @@ class CoreUser(models.Model):
         default=None
     )
 
+    language = models.ForeignKey(
+        Language,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
     phone = models.BigIntegerField(
-        null=Fasle,
+        null=False,
         blank=False,
         default=0
     )
 
     firstname = models.CharField(
-        max_lenght=100,
+        max_length=100,
         default='',
         null=False,
         blank=False
@@ -302,7 +328,7 @@ class CoreUser(models.Model):
         super(CoreUser, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.title
+        return self.firstname + "asd"
 
 
 class Partner(models.Model):
@@ -323,6 +349,7 @@ class Partner(models.Model):
 
     drivers = models.ManyToManyField(
         'Driver',
+        related_name='partner_drivers'
     )
 
     active = models.BooleanField(
@@ -501,7 +528,7 @@ class Car(models.Model):
         super(Car, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.title
+        return f'{self.model} - {self.number}'
 
 
 class FarePolicy(models.Model):
@@ -603,13 +630,6 @@ class Driver(models.Model):
 
     user = models.ForeignKey(
         CoreUser,
-        on_delete=models.CASCADE,
-        default=None,
-        blank=False
-    )
-
-    partner = models.ForeignKey(
-        Partner,
         on_delete=models.CASCADE,
         default=None,
         blank=False
@@ -773,14 +793,14 @@ class Review(models.Model):
 
     comment = models.CharField(
         max_length=1024,
-        default=''
+        default='',
         null=True,
         blank=True
     )
 
     reason = models.CharField(
         max_length=1024,
-        default=''
+        default='',
         null=True,
         blank=True
     )
@@ -822,7 +842,7 @@ class Ride(models.Model):
         blank=False
     )
 
-    from = models.ForeignKey(
+    start_point = models.ForeignKey(
         Address,
         on_delete=models.CASCADE,
         default=None,
@@ -830,12 +850,9 @@ class Ride(models.Model):
         related_name='start_address'
     )
 
-    to = models.ForeignKey(
+    end_point = models.ManyToManyField(
         Address,
-        on_delete=models.CASCADE,
-        default=None,
-        blank=False,
-        related_name='destination_address'
+        blank=True,
     )
 
     payment_type = models.ForeignKey(
@@ -864,3 +881,10 @@ class Ride(models.Model):
         default=None,
         blank=False
     )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(Review, self).save(*args, **kwargs)

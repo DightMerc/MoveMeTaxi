@@ -21,6 +21,7 @@ services:
       - SQL_HOST=${SQL_HOST}
       - SQL_PORT=${SQL_PORT}
       - DATABASE=${DATABASE}
+      - MEDIA_SITE_URL=${MEDIA_SITE_URL}
     depends_on:
       - db
   db:
