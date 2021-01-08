@@ -1,284 +1,890 @@
 from django.db import models
 
+from datetime import datetime
 
-class Good(models.Model):
+import hashlib
 
-    description = models.TextField(
+
+class DeviceType(models.Model):
+
+    title = models.CharField(
+        max_length=100,
+        default='',
         null=False,
-        blank=False,
-        default=''
+        blank=False
     )
 
-    unit = models.CharField(
-        max_length=50,
-        null=False,
-        blank=False,
-        default=''
-    )
-
-    amount = models.PositiveIntegerField(
-        null=False,
-        blank=False,
-        default=0
-    )
-
-    price = models.PositiveIntegerField(
-        null=False,
-        blank=False,
-        default=0
-    )
-
-    is_vat = models.BooleanField(
-        null=False,
-        blank=False,
-        default=False
-    )
-
-    vat_rate = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        default=0
-    )
-
-    vat_price = models.PositiveBigIntegerField(
-        null=True,
-        blank=True,
-        default=0
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True
-    )
-
-    def full_price(self):
-
-        return self.price + self.vat_price if self.vat_price else self.price
-
-    def __str__(self):
-        return self.description
-
-
-class Company(models.Model):
-
-    tin = models.PositiveBigIntegerField(
-        null=False,
-        blank=False,
+    code = models.IntegerField(
         default=0,
-    )
-
-    title = models.CharField(
-        max_length=1024,
-        null=False,
-        blank=False,
-        default=''
-    )
-
-    address = models.TextField(
         null=False,
         blank=False
-    )
-
-    main_phone = models.PositiveBigIntegerField(
-        null=False,
-        blank=False,
-    )
-
-    mobile_phone = models.PositiveBigIntegerField(
-        null=False,
-        blank=False,
-    )
-
-    checking_account = models.CharField(
-        max_length=255,
-        null=False,
-        blank=False
-    )
-
-    mfo = models.CharField(
-        max_length=255,
-        null=False,
-        blank=False
-    )
-
-    region = models.CharField(
-        max_length=255,
-        null=False,
-        blank=False
-    )
-
-    district = models.CharField(
-        max_length=255,
-        null=False,
-        blank=False
-    )
-
-    oked = models.CharField(
-        max_length=255,
-        null=False,
-        blank=False
-    )
-
-    head_manager = models.CharField(
-        max_length=255,
-        null=False,
-        blank=False
-    )
-
-    head_account_manager = models.CharField(
-        max_length=255,
-        null=False,
-        blank=False
-    )
-
-    released_by = models.CharField(
-        max_length=255,
-        null=False,
-        blank=False
-    )
-
-    is_vat = models.BooleanField(
-        null=False,
-        blank=False,
-        default=False
-    )
-
-    excise_tax = models.BooleanField(
-        null=False,
-        blank=False,
-        default=False
-    )
-
-    sms_inform = models.BooleanField(
-        null=False,
-        blank=False,
-        default=False
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
-
-    updated_at = models.DateTimeField(
-        auto_now=True
     )
 
     def __str__(self):
-        return f'{self.title}: {self.tin}'
+        return f'{self.code} - {self.title}'
 
 
-class Status(models.Model):
+class Device(models.Model):
 
-    title = models.CharField(
+    GUID = models.CharField(
         max_length=255,
+        default='',
         null=True,
         blank=True
     )
+
+    notificationID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    type = models.ForeignKey(
+        DeviceType,
+        on_delete=models.CASCADE,
+        default=None,
+        null=False
+    )
+
+    verified = models.BooleanField(
+        default=False,
+        null=True,
+        blank=False
+    )
+
+    verification_code = models.CharField(
+        max_length=100,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(Device, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.GUID} - {self.type.title}'
+
+
+class Language(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    title = models.CharField(
+        max_length=100,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    active = models.BooleanField(
+        default=True,
+        null=False,
+        blank=False
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(Language, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.title
 
 
-class Invoice(models.Model):
+class RideStatus(models.Model):
 
-    invoice_number = models.PositiveBigIntegerField(
-        null=False,
-        blank=False,
-        default=0
-    )
-
-    invoice_date = models.DateTimeField(
-        null=False,
-        blank=False,
-    )
-
-    contract_number = models.CharField(
+    GUID = models.CharField(
         max_length=255,
-        null=False,
-        blank=False
-    )
-
-    contract_date = models.DateTimeField(
-        null=False,
-        blank=False,
-    )
-
-    is_authorited = models.BooleanField(
-        null=False,
-        blank=False,
-        default=False
-    )
-
-    authority_number = models.PositiveBigIntegerField(
-        null=True,
-        blank=True,
-        default=0
-    )
-
-    authority_date = models.DateTimeField(
-        null=True,
-        blank=True,
-    )
-
-    authorited_person = models.CharField(
-        max_length=255,
+        default='',
         null=True,
         blank=True
     )
 
-    is_one_side_invoice = models.BooleanField(
-        null=False,
-        blank=False,
-        default=False
-    )
-
-    created_by = models.CharField(
-        max_length=255,
+    title = models.CharField(
+        max_length=100,
+        default='',
         null=False,
         blank=False
-    )
-
-    invoiced_from = models.ForeignKey(
-        Company,
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
-        related_name='invoiced_from'
-    )
-
-    invoiced_to = models.ForeignKey(
-        Company,
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
-        related_name='invoiced_to'
-    )
-
-    goods = models.ManyToManyField(
-        Good,
-        blank=False
-    )
-
-    status = models.ForeignKey(
-        Status,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
-    )
-
-    file = models.FileField(
-        null=True,
-        blank=True,
-        upload_to='uploads/docs/%Y/%m/%d/'
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True,
+        auto_now_add=True
     )
 
     updated_at = models.DateTimeField(
         auto_now=True
     )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(RideStatus, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class UserStatus(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    title = models.CharField(
+        max_length=100,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(UserStatus, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class ProfilePhoto(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    photo = models.ImageField(
+        upload_to='photo/profile/'
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(ProfilePhoto, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.GUID
+
+
+class CarPhoto(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    photo = models.ImageField(
+        upload_to='photo/car/'
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(CarPhoto, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.GUID
+
+
+class CoreUser(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    email = models.EmailField(
+        null=True,
+        blank=True,
+        default=None
+    )
+
+    language = models.ForeignKey(
+        Language,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    phone = models.BigIntegerField(
+        null=False,
+        blank=False,
+        default=0
+    )
+
+    firstname = models.CharField(
+        max_length=100,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    surname = models.CharField(
+        max_length=100,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    active = models.BooleanField(
+        default=True,
+        null=False,
+        blank=False
+    )
+
+    photo = models.ForeignKey(
+        ProfilePhoto,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=True
+    )
+
+    status = models.ForeignKey(
+        UserStatus,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=True
+    )
+
+    devices = models.ManyToManyField(
+        Device
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(CoreUser, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.firstname + "asd"
+
+
+class Partner(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    title = models.CharField(
+        max_length=100,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    drivers = models.ManyToManyField(
+        'Driver',
+        related_name='partner_drivers'
+    )
+
+    active = models.BooleanField(
+        default=True,
+        null=False,
+        blank=False
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(Partner, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class CarModel(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    title = models.CharField(
+        max_length=100,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    active = models.BooleanField(
+        default=True,
+        null=False,
+        blank=False
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(CarModel, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class CarColor(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    title = models.CharField(
+        max_length=100,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    hash = models.CharField(
+        max_length=100,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(CarColor, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class Car(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    manufacturer = models.CharField(
+        max_length=100,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    model = models.ForeignKey(
+        CarModel,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    color = models.ForeignKey(
+        CarColor,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    photo = models.ForeignKey(
+        CarPhoto,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    year = models.IntegerField(
+        default=0,
+        null=False,
+        blank=False
+    )
+
+    number = models.CharField(
+        max_length=255,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    conditioner = models.BooleanField(
+        default=False,
+        null=False,
+        blank=False
+    )
+
+    registration_date = models.DateTimeField(
+        default=datetime.now
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(Car, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.model} - {self.number}'
+
+
+class FarePolicy(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    title = models.CharField(
+        max_length=100,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    price_per_kilometer = models.FloatField(
+        default=0,
+        null=False,
+        blank=False
+    )
+
+    price_per_minute_of_waiting = models.FloatField(
+        default=0,
+        null=False,
+        blank=False
+    )
+
+    price_for_rating = models.FloatField(
+        default=0,
+        null=False,
+        blank=False
+    )
+
+    price_for_conditioner = models.FloatField(
+        default=0,
+        null=False,
+        blank=False
+    )
+
+    price_for_out_of_town = models.FloatField(
+        default=0,
+        null=False,
+        blank=False
+    )
+
+    price_for_car_model = models.FloatField(
+        default=0,
+        null=False,
+        blank=False
+    )
+
+    temp = models.BooleanField(
+        default=False,
+        blank=False,
+        null=False
+    )
+
+    started_at = models.DateTimeField(
+        default=datetime.now,
+        null=False,
+        blank=False
+    )
+
+    closes_at = models.DateTimeField(
+        default=datetime.now,
+        null=False,
+        blank=False
+    )
+
+    active = models.BooleanField(
+        default=False,
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(FarePolicy, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class Driver(models.Model):
+
+    user = models.ForeignKey(
+        CoreUser,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    car = models.ForeignKey(
+        Car,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    rating = models.IntegerField(
+        default=0,
+        null=True,
+        blank=True
+    )
+
+    fare_policy = models.ForeignKey(
+        FarePolicy,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=True
+    )
+
+    def __str__(self):
+        return self.user.firstname
+
+
+class Client(models.Model):
+
+    user = models.ForeignKey(
+        CoreUser,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    rating = models.IntegerField(
+        default=0,
+        null=True,
+        blank=True
+    )
+
+    def __str__(self):
+        return self.user.firstname
+
+
+class Address(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    title = models.CharField(
+        max_length=100,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    latitude = models.CharField(
+        max_length=20,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    longitude = models.CharField(
+        max_length=20,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    house = models.CharField(
+        max_length=20,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    comment = models.CharField(
+        max_length=256,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(Address, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class PaymentType(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    title = models.CharField(
+        max_length=100,
+        default='',
+        null=False,
+        blank=False
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(PaymentType, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class Review(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    stars = models.IntegerField(
+        default=0,
+        null=True,
+        blank=True
+    )
+
+    comment = models.CharField(
+        max_length=1024,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    reason = models.CharField(
+        max_length=1024,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(Review, self).save(*args, **kwargs)
+
+
+class Ride(models.Model):
+
+    GUID = models.CharField(
+        max_length=255,
+        default='',
+        null=True,
+        blank=True
+    )
+
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    driver = models.ForeignKey(
+        Driver,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    price = models.FloatField(
+        default=0,
+        null=False,
+        blank=False
+    )
+
+    start_point = models.ForeignKey(
+        Address,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False,
+        related_name='start_address'
+    )
+
+    end_point = models.ManyToManyField(
+        Address,
+        blank=True,
+    )
+
+    payment_type = models.ForeignKey(
+        PaymentType,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    active = models.BooleanField(
+        default=True,
+        null=False,
+        blank=False
+    )
+
+    status = models.ForeignKey(
+        RideStatus,
+        on_delete=models.CASCADE,
+        default=None,
+        blank=False
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.GUID:
+            self.GUID = hashlib.md5(
+                str(datetime.now()).encode('utf-8')
+                ).hexdigest()
+        super(Review, self).save(*args, **kwargs)

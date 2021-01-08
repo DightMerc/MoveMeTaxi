@@ -1,64 +1,92 @@
 from rest_framework import serializers
 
 from core import models
+from django.conf import settings
 
 
-class CompanySerializer(serializers.Serializer):
+class DeviceTypeSerializer(serializers.Serializer):
 
-    tin = serializers.IntegerField()
     title = serializers.CharField()
-    address = serializers.CharField()
-    main_phone = serializers.IntegerField()
-    mobile_phone = serializers.IntegerField()
-    checking_account = serializers.CharField()
-    mfo = serializers.CharField()
-    region = serializers.CharField()
-    district = serializers.CharField()
-    oked = serializers.CharField()
-    head_manager = serializers.CharField()
-    head_account_manager = serializers.CharField()
-    released_by = serializers.CharField()
-    is_vat = serializers.BooleanField()
-    excise_tax = serializers.BooleanField()
-    sms_inform = serializers.BooleanField()
-    created_at = serializers.DateTimeField()
-    updated_at = serializers.DateTimeField()
+    code = serializers.IntegerField
 
 
-class GoodSerializer(serializers.Serializer):
+class DeviceSerializer(serializers.Serializer):
 
-    description = serializers.CharField()
-    unit = serializers.CharField()
-    amount = serializers.IntegerField()
-    price = serializers.IntegerField()
-    is_vat = serializers.BooleanField()
-    vat_rate = serializers.IntegerField()
-    vat_price = serializers.IntegerField()
-    created_at = serializers.DateTimeField()
-    updated_at = serializers.DateTimeField()
+    GUID = serializers.CharField()
+    notificationID = serializers.CharField()
 
 
-class StatusSerializer(serializers.Serializer):
+class UserStatusSerializer(serializers.Serializer):
 
+    GUID = serializers.CharField()
     title = serializers.CharField()
 
 
-class InvoiceSerializer(serializers.Serializer):
+class UserPhotoSerializer(serializers.Serializer):
 
-    invoice_number = serializers.IntegerField()
-    invoice_date = serializers.DateTimeField()
-    contract_number = serializers.CharField()
-    contract_date = serializers.DateTimeField()
-    is_authorited = serializers.BooleanField()
-    authority_number = serializers.IntegerField()
-    authority_date = serializers.DateTimeField()
-    authorited_person = serializers.CharField()
-    is_one_side_invoice = serializers.BooleanField()
-    created_by = serializers.CharField()
-    invoiced_from = CompanySerializer()
-    invoiced_to = CompanySerializer()
-    goods = GoodSerializer(many=True)
-    status = StatusSerializer()
-    file = serializers.FileField()
-    created_at = serializers.DateTimeField()
-    updated_at = serializers.DateTimeField()
+    def to_representation(self, value):
+        return f'{settings.MEDIA_SITE_URL}{settings.MEDIA_URL}{value.photo}'
+        # return f'{value.photo}'
+
+
+class LanguageSerializer(serializers.Serializer):
+
+    GUID = serializers.CharField()
+    title = serializers.CharField()
+
+
+class CoreUserSerializer(serializers.Serializer):
+
+    GUID = serializers.CharField()
+    language = LanguageSerializer()
+    email = serializers.CharField()
+    phone = serializers.CharField()
+    status = UserStatusSerializer()
+    firstname = serializers.CharField()
+    surname = serializers.CharField()
+    photo = UserPhotoSerializer()
+
+
+class CarModelSerializer(serializers.Serializer):
+
+    GUID = serializers.CharField()
+    title = serializers.CharField()
+
+
+class CarColorSerializer(serializers.Serializer):
+
+    GUID = serializers.CharField()
+    title = serializers.CharField()
+    hash = serializers.CharField()
+
+
+class CarPhotoSerizlizer(serializers.Serializer):
+
+    def to_representation(self, value):
+        return f'{settings.MEDIA_SITE_URL}{settings.MEDIA_URL}{value.photo}'
+
+
+class CarSerializer(serializers.Serializer):
+
+    GUID = serializers.CharField()
+    manufacturer = serializers.CharField()
+    model = CarModelSerializer()
+    color = CarColorSerializer()
+    photo = CarPhotoSerizlizer()
+    year = serializers.IntegerField()
+    number = serializers.CharField()
+    conditioner = serializers.BooleanField()
+    registration_date = serializers.DateTimeField()
+
+
+class ClientSerializer(serializers.Serializer):
+
+    user = CoreUserSerializer()
+    rating = serializers.IntegerField()
+
+
+class DriverSerializer(serializers.Serializer):
+
+    user = CoreUserSerializer()
+    rating = serializers.IntegerField()
+    car = CarSerializer()

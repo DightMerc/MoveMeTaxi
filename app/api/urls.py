@@ -18,7 +18,10 @@ from django.urls import path
 import api.views as views
 
 urlpatterns = [
-    path('company/', views.CompanyView.as_view()),
-    path('good/', views.GoodView.as_view()),
-    path('invoice/', views.InvoiceView.as_view())
+    path('devices/', views.DeviceView.as_view()),
+    path('<str:GUID>/auth/', views.AuthDeviceView.as_view()),
+    path('<str:GUID>/auth/check/', views.AuthDeviceCheckView.as_view()),
+    path('<str:GUID>/user/', views.UserView.as_view()),
+    path('language/', views.LanguageListView.as_view())
+
 ]
