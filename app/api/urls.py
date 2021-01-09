@@ -22,6 +22,7 @@ urlpatterns = [
     path('<str:GUID>/auth/', views.AuthDeviceView.as_view()),
     path('<str:GUID>/auth/check/', views.AuthDeviceCheckView.as_view()),
     path('<str:GUID>/user/', views.UserView.as_view()),
+    path('<str:GUID>/user/status/', views.UserStatusView.as_view()),
     path('language/', views.LanguageListView.as_view())
 
 ]

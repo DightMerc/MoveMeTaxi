@@ -70,6 +70,12 @@ class AuthDeviceView(APIView):
                 status=status.HTTP_404_NOT_FOUND
                 )
 
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
         try:
             phone = str(data['phone'])
         except Exception as e:
@@ -94,6 +100,21 @@ class AuthDeviceView(APIView):
             sms_service.sendMessage(phone, verification code)
         """
 
+        try:
+            CoreUser = models.CoreUser.objects.get(phone=phone)
+        except models.CoreUser.DoesNotExist:
+            CoreUser = models.CoreUser()
+            CoreUser.email = ''
+            CoreUser.language = models.Language.objects.get(id=1)
+            CoreUser.phone = phone
+            CoreUser.firstname = ''
+            CoreUser.surname = ''
+            CoreUser.photo = models.ProfilePhoto.objects.get(id=1)
+            CoreUser.status = models.UserStatus.objects.get(id=1)
+            CoreUser.save()
+
+        CoreUser.devices.add(Device)
+
         return Response(
             'verification code sent: ' + str(verification_code),
             status=status.HTTP_200_OK
@@ -112,6 +133,12 @@ class AuthDeviceCheckView(APIView):
             return Response(
                 'device with selected GUID not found',
                 status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
                 )
 
         try:
@@ -139,17 +166,13 @@ class AuthDeviceCheckView(APIView):
 
         try:
             CoreUser = models.CoreUser.objects.get(devices=Device)
-        except models.CoreUser.DoesNotExist:
-            CoreUser = models.CoreUser()
-            CoreUser.email = ''
-            CoreUser.language = models.Language.objects.get(id=1)
-            CoreUser.phone = 0
-            CoreUser.firstname = ''
-            CoreUser.surname = ''
-            CoreUser.photo = models.ProfilePhoto.objects.get(id=1)
-            CoreUser.status = models.UserStatus.objects.get(id=1)
-            CoreUser.save()
-            CoreUser.devices.add(Device)
+            driver = models.Driver.objects.get(user=CoreUser)
+            for device in CoreUser.devices.all():
+                if device.id != Device.id:
+                    device.active = False
+                    device.save()
+        except Exception as e:
+            pass
 
         return Response(
             'accepted',
@@ -176,6 +199,12 @@ class UserView(APIView):
             return Response(
                 'device with selected GUID not found',
                 status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
                 )
 
         try:
@@ -227,6 +256,12 @@ class UserView(APIView):
             return Response(
                 'device with selected GUID not found',
                 status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
                 )
 
         try:
@@ -305,4 +340,36 @@ class UserView(APIView):
         return Response(
             result,
             status=status.HTTP_201_CREATED
+        )
+
+
+class UserStatusView(APIView):
+
+    def get(self, request, version, GUID):
+
+        try:
+            Device = models.Device.objects.get(GUID=GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'device with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        try:
+            CoreUser = models.CoreUser.objects.get(devices=Device)
+        except models.CoreUser.DoesNotExist:
+            return Response(
+                'user not found',
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return Response(
+            serializers.UserStatusSerializer(CoreUser.status).data,
+            status=status.HTTP_200_OK
         )
