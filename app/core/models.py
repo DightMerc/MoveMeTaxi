@@ -845,7 +845,8 @@ class Ride(models.Model):
         Driver,
         on_delete=models.CASCADE,
         default=None,
-        blank=False
+        blank=True,
+        null=True
     )
 
     price = models.FloatField(
@@ -878,7 +879,15 @@ class Ride(models.Model):
         Review,
         on_delete=models.CASCADE,
         default=None,
-        blank=False
+        blank=True,
+        null=True
+    )
+
+    fare_policy = models.ForeignKey(
+        FarePolicy,
+        on_delete=models.CASCADE,
+        default=1,
+        blank=True
     )
 
     active = models.BooleanField(
@@ -891,7 +900,8 @@ class Ride(models.Model):
         RideStatus,
         on_delete=models.CASCADE,
         default=None,
-        blank=False
+        blank=False,
+        null=False
     )
 
     def save(self, *args, **kwargs):
@@ -899,4 +909,4 @@ class Ride(models.Model):
             self.GUID = hashlib.md5(
                 str(datetime.now()).encode('utf-8')
                 ).hexdigest()
-        super(Review, self).save(*args, **kwargs)
+        super(Ride, self).save(*args, **kwargs)
