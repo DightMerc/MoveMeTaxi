@@ -22,7 +22,13 @@ class DeviceView(APIView):
 
     def post(self, request, version):
 
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
+        except Exception as e:
+            return Response(
+                'request body not set',
+                status=status.HTTP_400_BAD_REQUEST
+                )
 
         try:
             device_type = str(data['device_type'])
@@ -70,6 +76,12 @@ class AuthDeviceView(APIView):
                 status=status.HTTP_404_NOT_FOUND
                 )
 
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
         try:
             phone = str(data['phone'])
         except Exception as e:
@@ -94,6 +106,21 @@ class AuthDeviceView(APIView):
             sms_service.sendMessage(phone, verification code)
         """
 
+        try:
+            CoreUser = models.CoreUser.objects.get(phone=phone)
+        except models.CoreUser.DoesNotExist:
+            CoreUser = models.CoreUser()
+            CoreUser.email = ''
+            CoreUser.language = models.Language.objects.get(id=1)
+            CoreUser.phone = phone
+            CoreUser.firstname = ''
+            CoreUser.surname = ''
+            CoreUser.photo = models.ProfilePhoto.objects.get(id=1)
+            CoreUser.status = models.UserStatus.objects.get(id=1)
+            CoreUser.save()
+
+        CoreUser.devices.add(Device)
+
         return Response(
             'verification code sent: ' + str(verification_code),
             status=status.HTTP_200_OK
@@ -104,7 +131,13 @@ class AuthDeviceCheckView(APIView):
 
     def post(self, request, version, GUID):
 
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
+        except Exception as e:
+            return Response(
+                'request body not set',
+                status=status.HTTP_400_BAD_REQUEST
+                )
 
         try:
             Device = models.Device.objects.get(GUID=GUID)
@@ -112,6 +145,12 @@ class AuthDeviceCheckView(APIView):
             return Response(
                 'device with selected GUID not found',
                 status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
                 )
 
         try:
@@ -139,17 +178,13 @@ class AuthDeviceCheckView(APIView):
 
         try:
             CoreUser = models.CoreUser.objects.get(devices=Device)
-        except models.CoreUser.DoesNotExist:
-            CoreUser = models.CoreUser()
-            CoreUser.email = ''
-            CoreUser.language = models.Language.objects.get(id=1)
-            CoreUser.phone = 0
-            CoreUser.firstname = ''
-            CoreUser.surname = ''
-            CoreUser.photo = models.ProfilePhoto.objects.get(id=1)
-            CoreUser.status = models.UserStatus.objects.get(id=1)
-            CoreUser.save()
-            CoreUser.devices.add(Device)
+            driver = models.Driver.objects.get(user=CoreUser)
+            for device in CoreUser.devices.all():
+                if device.id != Device.id:
+                    device.active = False
+                    device.save()
+        except Exception as e:
+            pass
 
         return Response(
             'accepted',
@@ -176,6 +211,12 @@ class UserView(APIView):
             return Response(
                 'device with selected GUID not found',
                 status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
                 )
 
         try:
@@ -219,7 +260,13 @@ class UserView(APIView):
 
     def post(self, request, version, GUID):
 
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
+        except Exception as e:
+            return Response(
+                'request body not set',
+                status=status.HTTP_400_BAD_REQUEST
+                )
 
         try:
             Device = models.Device.objects.get(GUID=GUID)
@@ -227,6 +274,12 @@ class UserView(APIView):
             return Response(
                 'device with selected GUID not found',
                 status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
                 )
 
         try:
@@ -304,5 +357,363 @@ class UserView(APIView):
 
         return Response(
             result,
+            status=status.HTTP_201_CREATED
+        )
+
+
+class UserStatusView(APIView):
+
+    def get(self, request, version, GUID):
+
+        try:
+            Device = models.Device.objects.get(GUID=GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'device with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        try:
+            CoreUser = models.CoreUser.objects.get(devices=Device)
+        except models.CoreUser.DoesNotExist:
+            return Response(
+                'user not found',
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return Response(
+            serializers.UserStatusSerializer(CoreUser.status).data,
+            status=status.HTTP_200_OK
+        )
+
+
+class RideView(APIView):
+
+    def post(self, request, version, GUID):
+
+        try:
+            data = json.loads(request.body)
+        except Exception as e:
+            return Response(
+                'request body not set',
+                status=status.HTTP_400_BAD_REQUEST
+                )
+
+        try:
+            Device = models.Device.objects.get(GUID=GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'device with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        try:
+            route = data['route']
+        except Exception as e:
+            return Response(
+                'route is not set',
+                status=status.HTTP_400_BAD_REQUEST
+                )
+
+        if len(route) == 0:
+            return Response(
+                'at least one address point must be added to route',
+                status=status.HTTP_400_BAD_REQUEST
+                )
+
+        try:
+            client = models.Client.objects.get(user__devices__GUID=GUID)
+        except Exception as e:
+            return Response(
+                'client wit selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        try:
+            fare_policy = str(data['fare_policy'])
+        except Exception as e:
+            return Response(
+                'fare_policy is not set',
+                status=status.HTTP_400_BAD_REQUEST
+                )
+
+        try:
+            payment_type = str(data['payment_type'])
+        except Exception as e:
+            return Response(
+                'payment_type is not set',
+                status=status.HTTP_400_BAD_REQUEST
+                )
+
+        try:
+            fare_policy = models.FarePolicy.objects.get(GUID=fare_policy)
+        except Exception as e:
+            return Response(
+                'fare_policy with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        try:
+            payment_type = models.PaymentType.objects.get(GUID=payment_type)
+        except Exception as e:
+            return Response(
+                'payment_type with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        address = route[0]
+        newAddress = models.Address()
+        try:
+            newAddress.title = address['title']
+        except Exception as e:
+            return Response(
+                    'title not set: ' + str(address),
+                    status=status.HTTP_400_BAD_REQUEST
+                    )
+
+        try:
+            newAddress.latitude = address['latitude']
+        except Exception as e:
+            return Response(
+                    'latitude not set: ' + str(address),
+                    status=status.HTTP_400_BAD_REQUEST
+                    )
+
+        try:
+            newAddress.longitude = address['longitude']
+        except Exception as e:
+            return Response(
+                    'longitude not set: ' + str(address),
+                    status=status.HTTP_400_BAD_REQUEST
+                    )
+
+        try:
+            newAddress.house = address['house']
+        except Exception as e:
+            newAddress.house = ''
+
+        try:
+            newAddress.comment = address['comment']
+        except Exception as e:
+            newAddress.comment = ''
+
+        newAddress.save()
+
+        NewRide = models.Ride()
+        NewRide.client = client
+        NewRide.start_point = newAddress
+        NewRide.fare_policy = fare_policy
+        NewRide.payment_type = payment_type
+        NewRide.status = models.RideStatus.objects.first()
+        NewRide.save()
+
+        for address in route[1:]:
+
+            newAddress = models.Address()
+            try:
+                newAddress.title = address['title']
+            except Exception as e:
+                return Response(
+                        'title not set: ' + str(address),
+                        status=status.HTTP_400_BAD_REQUEST
+                        )
+
+            try:
+                newAddress.latitude = address['latitude']
+            except Exception as e:
+                return Response(
+                        'latitude not set: ' + str(address),
+                        status=status.HTTP_400_BAD_REQUEST
+                        )
+
+            try:
+                newAddress.longitude = address['longitude']
+            except Exception as e:
+                return Response(
+                        'longitude not set: ' + str(address),
+                        status=status.HTTP_400_BAD_REQUEST
+                        )
+
+            try:
+                newAddress.house = address['house']
+            except Exception as e:
+                newAddress.house = ''
+
+            try:
+                newAddress.comment = address['comment']
+            except Exception as e:
+                newAddress.comment = ''
+
+            newAddress.save()
+
+            NewRide.end_point.add(newAddress)
+
+        return Response(
+            serializers.RideSerializer(NewRide).data,
+            status=status.HTTP_201_CREATED
+        )
+
+
+class RideInfo(APIView):
+
+    def get(self, request, version, GUID, RIDE_GUID):
+
+        try:
+            Device = models.Device.objects.get(GUID=GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'device with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        try:
+            ride = models.Ride.objects.get(GUID=RIDE_GUID)
+        except models.Ride.DoesNotExist:
+            return Response(
+                'ride with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        return Response(
+            serializers.RideSerializer(ride).data,
+            status=status.HTTP_200_OK
+        )
+
+
+class RideStatus(APIView):
+
+    def get(self, request, version, GUID, RIDE_GUID):
+
+        try:
+            Device = models.Device.objects.get(GUID=GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'device with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        try:
+            ride = models.Ride.objects.get(GUID=RIDE_GUID)
+        except models.Ride.DoesNotExist:
+            return Response(
+                'ride with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        return Response(
+            serializers.RideStatusSerializer(ride.status).data,
+            status=status.HTTP_200_OK
+        )
+
+
+class RideReview(APIView):
+
+    def get(self, request, version, GUID, RIDE_GUID):
+
+        try:
+            Device = models.Device.objects.get(GUID=GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'device with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        try:
+            ride = models.Ride.objects.get(GUID=RIDE_GUID)
+        except models.Ride.DoesNotExist:
+            return Response(
+                'ride with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        return Response(
+            serializers.ReviewSerializer(ride.review).data,
+            status=status.HTTP_200_OK
+        )
+
+    def post(self, request, version, GUID, RIDE_GUID):
+
+        try:
+            data = json.loads(request.body)
+        except Exception as e:
+            return Response(
+                'request body not set',
+                status=status.HTTP_400_BAD_REQUEST
+                )
+
+        try:
+            Device = models.Device.objects.get(GUID=GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'device with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        try:
+            ride = models.Ride.objects.get(GUID=RIDE_GUID)
+        except models.Ride.DoesNotExist:
+            return Response(
+                'ride with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        newReview = models.Review()
+
+        try:
+            newReview.stars = int(data['stars'])
+        except Exception as e:
+            newReview.stars = 0
+
+        try:
+            newReview.comment = int(data['comment'])
+        except Exception as e:
+            newReview.comment = ''
+
+        try:
+            newReview.reason = int(data['reason'])
+        except Exception as e:
+            newReview.reason = ''
+
+        newReview.save()
+        ride.review = newReview.save()
+
+        return Response(
+            serializers.ReviewSerializer(newReview).data,
             status=status.HTTP_201_CREATED
         )

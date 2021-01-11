@@ -90,3 +90,46 @@ class DriverSerializer(serializers.Serializer):
     user = CoreUserSerializer()
     rating = serializers.IntegerField()
     car = CarSerializer()
+
+
+class AddressSerializer(serializers.Serializer):
+
+    GUID = serializers.CharField()
+    title = serializers.CharField()
+    latitude = serializers.CharField()
+    longitude = serializers.CharField()
+    house = serializers.CharField()
+    comment = serializers.CharField()
+
+
+class PaymentTypeSerializer(serializers.Serializer):
+
+    GUID = serializers.CharField()
+    title = serializers.CharField()
+
+
+class ReviewSerializer(serializers.Serializer):
+
+    GUID = serializers.CharField()
+    stars = serializers.IntegerField()
+    comment = serializers.CharField()
+    reason = serializers.CharField()
+
+
+class RideStatusSerializer(serializers.Serializer):
+
+    GUID = serializers.CharField()
+    title = serializers.CharField()
+
+
+class RideSerializer(serializers.Serializer):
+
+    GUID = serializers.CharField()
+    client = ClientSerializer()
+    driver = DriverSerializer()
+    price = serializers.IntegerField()
+    start_point = AddressSerializer()
+    end_point = AddressSerializer(many=True)
+    payment_type = PaymentTypeSerializer()
+    review = ReviewSerializer()
+    status = RideStatusSerializer()

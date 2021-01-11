@@ -18,10 +18,19 @@ from django.urls import path
 import api.views as views
 
 urlpatterns = [
+
+    path('language/', views.LanguageListView.as_view()),
     path('devices/', views.DeviceView.as_view()),
+
     path('<str:GUID>/auth/', views.AuthDeviceView.as_view()),
     path('<str:GUID>/auth/check/', views.AuthDeviceCheckView.as_view()),
+
     path('<str:GUID>/user/', views.UserView.as_view()),
-    path('language/', views.LanguageListView.as_view())
+    path('<str:GUID>/user/status/', views.UserStatusView.as_view()),
+
+    path('<str:GUID>/ride/', views.RideView.as_view()),
+    path('<str:GUID>/ride/<str:RIDE_GUID>/info/', views.RideInfo.as_view()),
+    path('<str:GUID>/ride/<str:RIDE_GUID>/status/', views.RideStatus.as_view()),
+    path('<str:GUID>/ride/<str:RIDE_GUID>/review/', views.RideReview.as_view())
 
 ]

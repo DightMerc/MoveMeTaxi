@@ -53,6 +53,12 @@ class Device(models.Model):
         blank=False
     )
 
+    active = models.BooleanField(
+        default=True,
+        null=False,
+        blank=False
+    )
+
     verification_code = models.CharField(
         max_length=100,
         default='',
@@ -309,7 +315,8 @@ class CoreUser(models.Model):
     )
 
     devices = models.ManyToManyField(
-        Device
+        Device,
+        blank=True
     )
 
     created_at = models.DateTimeField(
@@ -328,7 +335,7 @@ class CoreUser(models.Model):
         super(CoreUser, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.firstname + "asd"
+        return self.firstname
 
 
 class Partner(models.Model):
@@ -632,7 +639,8 @@ class Driver(models.Model):
         CoreUser,
         on_delete=models.CASCADE,
         default=None,
-        blank=False
+        blank=False,
+        null=True
     )
 
     car = models.ForeignKey(
@@ -651,12 +659,15 @@ class Driver(models.Model):
     fare_policy = models.ForeignKey(
         FarePolicy,
         on_delete=models.CASCADE,
-        default=None,
+        default=1,
         blank=True
     )
 
     def __str__(self):
-        return self.user.firstname
+        try:
+            return self.user.firstname if self.user.firstname else 'not connected driver'
+        except Exception as e:
+            return 'not connected driver'
 
 
 class Client(models.Model):
@@ -665,7 +676,8 @@ class Client(models.Model):
         CoreUser,
         on_delete=models.CASCADE,
         default=None,
-        blank=False
+        blank=False,
+        null=True
     )
 
     rating = models.IntegerField(
@@ -833,7 +845,8 @@ class Ride(models.Model):
         Driver,
         on_delete=models.CASCADE,
         default=None,
-        blank=False
+        blank=True,
+        null=True
     )
 
     price = models.FloatField(
@@ -866,7 +879,15 @@ class Ride(models.Model):
         Review,
         on_delete=models.CASCADE,
         default=None,
-        blank=False
+        blank=True,
+        null=True
+    )
+
+    fare_policy = models.ForeignKey(
+        FarePolicy,
+        on_delete=models.CASCADE,
+        default=1,
+        blank=True
     )
 
     active = models.BooleanField(
@@ -879,7 +900,8 @@ class Ride(models.Model):
         RideStatus,
         on_delete=models.CASCADE,
         default=None,
-        blank=False
+        blank=False,
+        null=False
     )
 
     def save(self, *args, **kwargs):
@@ -887,4 +909,4 @@ class Ride(models.Model):
             self.GUID = hashlib.md5(
                 str(datetime.now()).encode('utf-8')
                 ).hexdigest()
-        super(Review, self).save(*args, **kwargs)
+        super(Ride, self).save(*args, **kwargs)
