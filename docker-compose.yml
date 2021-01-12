@@ -21,6 +21,26 @@ services:
       - DATABASE=${DATABASE}
     depends_on:
       - db
+  geo:
+    build: ./geocoder
+    command: python manage.py runserver 0.0.0.0:8022
+    volumes:
+      - ./geocoder/:/usr/src/geo/
+    ports:
+      - 8022:8022
+    environment:
+      - DEBUG=${DEBUG_GEO}
+      - SECRET_KEY=${SECRET_KEY_GEO}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS_GEO}
+      - SQL_ENGINE=${SQL_ENGINE_GEO}
+      - SQL_DATABASE=${SQL_DATABASE_GEO}
+      - SQL_USER=${SQL_USER_GEO}
+      - SQL_PASSWORD=${SQL_PASSWORD_GEO}
+      - SQL_HOST=${SQL_HOST_GEO}
+      - SQL_PORT=${SQL_PORT_GEO}
+      - DATABASE=${DATABASE_GEO}
+    depends_on:
+      - db
   db:
     image: postgres:12.0-alpine
     volumes:
@@ -30,5 +50,18 @@ services:
       - POSTGRES_PASSWORD=${SQL_PASSWORD}
       - POSTGRES_DB=${SQL_DATABASE}
 
+  redis:
+    image: "redis:alpine"
+    hostname: redis
+    ports:
+      - "6379:6379"
+    expose:
+      - "6380"
+    volumes:
+      - type: volume
+        source: redis-data
+        target: /data
+
 volumes:
   postgres_data:
+  redis-data: {}

@@ -2,7 +2,7 @@
 FROM python:3.8.3-alpine
 
 # set work directory
-WORKDIR /usr/src/app
+WORKDIR /usr/src/geo
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -26,6 +26,6 @@ COPY ./entrypoint.sh .
 COPY . .
 
 # run entrypoint.shentrypoint
-ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+ENTRYPOINT ["/usr/src/geo/entrypoint.sh"]
 # ENTRYPOINT ["/usr/src/app/create_user.sh"]
 
