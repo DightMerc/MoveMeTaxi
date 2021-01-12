@@ -22,6 +22,8 @@ JIRA (https://movemeuz.atlassian.net/jira/software/projects/MT/boards/1)
      ```
  - Flush and migrate database
      ```
+     @geo:~$ bash create_geo_user.sh
+
      @dev:~$ docker-compose exec web python manage.py flush --no-input
      @dev:~$ docker-compose exec web python manage.py migrate
      @prod:~$ docker-compose -f docker-compose.prod.yml exec web python manage.py flush --no-input
