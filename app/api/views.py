@@ -461,8 +461,18 @@ class RideView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
                 )
 
+        # TODO change to GUID
+
+        # try:
+        #     fare_policy = models.FarePolicy.objects.get(GUID=fare_policy)
+        # except Exception as e:
+        #     return Response(
+        #         'fare_policy with selected GUID not found',
+        #         status=status.HTTP_404_NOT_FOUND
+        #         )
+
         try:
-            fare_policy = models.FarePolicy.objects.get(GUID=fare_policy)
+            fare_policy = models.FarePolicy.objects.get(title=fare_policy)
         except Exception as e:
             return Response(
                 'fare_policy with selected GUID not found',
