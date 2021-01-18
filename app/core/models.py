@@ -720,7 +720,7 @@ class Address(models.Model):
         blank=False
     )
 
-    house = models.CharField(
+    entrance = models.CharField(
         max_length=20,
         default='',
         null=False,

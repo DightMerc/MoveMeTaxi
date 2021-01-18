@@ -31,6 +31,9 @@ urlpatterns = [
     path('<str:GUID>/ride/', views.RideView.as_view()),
     path('<str:GUID>/ride/<str:RIDE_GUID>/info/', views.RideInfo.as_view()),
     path('<str:GUID>/ride/<str:RIDE_GUID>/status/', views.RideStatus.as_view()),
-    path('<str:GUID>/ride/<str:RIDE_GUID>/review/', views.RideReview.as_view())
+    path('<str:GUID>/ride/<str:RIDE_GUID>/review/', views.RideReview.as_view()),
+
+    path('<str:GUID>/fare/', views.FarePolicyView.as_view())
+
 
 ]

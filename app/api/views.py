@@ -4,6 +4,8 @@ from rest_framework.schemas.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from datetime import datetime
+
 from core import models
 import api.serializers as serializers
 
@@ -502,9 +504,9 @@ class RideView(APIView):
                     )
 
         try:
-            newAddress.house = address['house']
+            newAddress.entrance = address['entrance']
         except Exception as e:
-            newAddress.house = ''
+            newAddress.entrance = ''
 
         try:
             newAddress.comment = address['comment']
@@ -718,4 +720,40 @@ class RideReview(APIView):
         return Response(
             serializers.ReviewSerializer(newReview).data,
             status=status.HTTP_201_CREATED
+        )
+
+
+class FarePolicyView(APIView):
+
+    def get(self, request, version, GUID):
+
+        try:
+            Device = models.Device.objects.get(GUID=GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'device with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        fare_policies = models.FarePolicy.objects.filter(active=True)
+
+        result = []
+        for policy in fare_policies:
+            if policy.temp:
+                if policy.closes_at > datetime.now():
+                    result.append(policy)
+                else:
+                    policy.active = False
+            else:
+                result.append(policy)
+
+        return Response(
+            serializers.FarePolicySerizlier(result, many=True).data,
+            status=status.HTTP_200_OK
         )
