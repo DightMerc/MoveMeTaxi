@@ -98,7 +98,7 @@ class AddressSerializer(serializers.Serializer):
     title = serializers.CharField()
     latitude = serializers.CharField()
     longitude = serializers.CharField()
-    house = serializers.CharField()
+    entrance = serializers.CharField()
     comment = serializers.CharField()
 
 
