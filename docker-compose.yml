@@ -41,6 +41,26 @@ services:
       - DATABASE=${DATABASE_GEO}
     depends_on:
       - db
+  driver-finder:
+    build: ./driver-finder
+    command: python manage.py runserver 0.0.0.0:8023
+    volumes:
+      - ./driver-finder/:/usr/src/driver-finder/
+    ports:
+      - 8023:8023
+    environment:
+      - DEBUG=${DEBUG_FINDER}
+      - SECRET_KEY=${SECRET_KEY_FINDER}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS_FINDER}
+      - SQL_ENGINE=${SQL_ENGINE_FINDER}
+      - SQL_DATABASE=${SQL_DATABASE_FINDER}
+      - SQL_USER=${SQL_USER_FINDER}
+      - SQL_PASSWORD=${SQL_PASSWORD_FINDER}
+      - SQL_HOST=${SQL_HOST_FINDER}
+      - SQL_PORT=${SQL_PORT_FINDER}
+      - DATABASE=${DATABASE_FINDER}
+    depends_on:
+      - db
   db:
     image: postgres:12.0-alpine
     volumes:
