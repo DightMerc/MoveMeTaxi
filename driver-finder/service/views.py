@@ -39,6 +39,8 @@ class FindClosestDriver(APIView):
                 status=status.HTTP_400_BAD_REQUEST
                 )
 
+        driver = models.Driver.objects.all()
+
         return Response(
             {
                 'drivers': [

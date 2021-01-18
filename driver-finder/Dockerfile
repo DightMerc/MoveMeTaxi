@@ -28,4 +28,3 @@ COPY . .
 # run entrypoint.shentrypoint
 ENTRYPOINT ["/usr/src/driver-finder/entrypoint.sh"]
 # ENTRYPOINT ["/usr/src/app/create_user.sh"]
-

@@ -420,16 +420,18 @@ class RideView(APIView):
                 )
 
         try:
-            route = data['route']
+            from_address = data['from']
         except Exception as e:
             return Response(
-                'route is not set',
+                'from is not set',
                 status=status.HTTP_400_BAD_REQUEST
                 )
 
-        if len(route) == 0:
+        try:
+            to_address = data['to']
+        except Exception as e:
             return Response(
-                'at least one address point must be added to route',
+                'to is not set',
                 status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -473,7 +475,7 @@ class RideView(APIView):
                 status=status.HTTP_404_NOT_FOUND
                 )
 
-        address = route[0]
+        address = from_address
         newAddress = models.Address()
         try:
             newAddress.title = address['title']
@@ -519,7 +521,7 @@ class RideView(APIView):
         NewRide.status = models.RideStatus.objects.first()
         NewRide.save()
 
-        for address in route[1:]:
+        for address in to_address:
 
             newAddress = models.Address()
             try:
