@@ -12,6 +12,12 @@ import api.serializers as serializers
 import json
 import random
 
+import os
+from twilio.rest import Client as TwilioClient
+
+import logging
+logger = logging.getLogger(__name__)
+
 
 class DeviceView(APIView):
 
@@ -103,10 +109,20 @@ class AuthDeviceView(APIView):
         Device.verification_code = verification_code
         Device.save()
 
-        # TODO
-        """
-            sms_service.sendMessage(phone, verification code)
-        """
+        account_sid = os.environ.get('TWILIO_ACCOUNT_SID', '')
+        auth_token = os.environ.get('TWILIO_AUTH_TOKEN', '')
+        sms_phone_number = os.environ.get('TWILIO_PHONE_NUMBER', '')
+
+        client = TwilioClient(account_sid, auth_token)
+
+        try:
+            message = client.messages.create(
+                body=f'Your verification code in MoveMe: {verification_code}',
+                from_=sms_phone_number,
+                to=f'+{phone}'
+            )
+        except Exception as e:
+            logger.error(e)
 
         try:
             CoreUser = models.CoreUser.objects.get(phone=phone)
@@ -767,3 +783,63 @@ class FarePolicyView(APIView):
             serializers.FarePolicySerizlier(result, many=True).data,
             status=status.HTTP_200_OK
         )
+
+
+class RideAccept(APIView):
+
+    def get(self, request, version, GUID, RIDE_GUID):
+
+        try:
+            Device = models.Device.objects.get(GUID=GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'device with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        try:
+            ride = models.Ride.objects.get(GUID=RIDE_GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'ride with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        try:
+            CoreUser = models.CoreUser.objects.get(devices=Device)
+        except models.CoreUser.DoesNotExist:
+            return Response(
+                'user not found',
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            user = models.Driver.objects.get(user=CoreUser)
+        except models.Driver.DoesNotExist:
+            return Response(
+                'driver not found',
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if ride.driver is None:
+
+            ride.driver = user
+            ride.save()
+
+            return Response(
+                'OK',
+                status=status.HTTP_200_OK
+            )
+
+        else:
+
+            return Response(
+                f'ride has been already accepted by another driver: {ride.driver.user.GUID}',
+                status=status.HTTP_404_NOT_FOUND
+            )

@@ -5,12 +5,18 @@ from service import models as ServiceModels
 
 from channels.db import database_sync_to_async
 from math import asin, cos, radians, sin, sqrt
-import haversine
+from core import serializers
+
+import logging
+logger = logging.getLogger(__name__)
+
+import requests
 
 
 class LocationConsumer(AsyncWebsocketConsumer):
-    
+
     async def connect(self):
+
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'group_{self.room_name}'
 
@@ -20,12 +26,10 @@ class LocationConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-        user = await database_sync_to_async(self.get_name)()
-
         await self.accept()
 
         await self.send(text_data=json.dumps({
-            'message': 'connected - ' + str(user)
+            'message': 'connected'
         }))
 
     async def disconnect(self, close_code):
@@ -37,48 +41,34 @@ class LocationConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
+
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
 
         GUID = message['GUID']
         location = message['location']
-        await database_sync_to_async(self.update_location)(GUID, location)
+        is_client = bool(message['is_client'])
+        # logger.error(is_client)
+        await database_sync_to_async(self.update_location)(GUID, is_client, location)
 
-        # Send message to room group
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': str(message)
-            }
-        )
+    def update_location(self, GUID, is_client, data):
 
-    # Receive message from room group
-    async def chat_message(self, event):
-        message = event['message']
-
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({
-            'message': message
-        }))
-
-    def update_location(self, GUID, data):
-        location, created = ServiceModels.Location.objects.get_or_create()
+        location, created = ServiceModels.Location.objects.get_or_create(user__GUID=GUID)
         if created:
             location.user = CoreModels.CoreUser.objects.get(GUID=GUID)
-        else:
-            location.latitude = data['latitude']
-            location.longitude = data['longitude']
-            location.save()
-        return True
+            location.is_client = bool(is_client)
 
-    def get_name(self):
-        return CoreModels.CoreUser.objects.all().first().GUID
+        location.latitude = data['latitude']
+        location.longitude = data['longitude']
+        location.save()
+
+        return True
 
 
 class RideRequestConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
+
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'group_{self.room_name}'
 
@@ -88,12 +78,10 @@ class RideRequestConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
-        user = await database_sync_to_async(self.get_name)()
-
         await self.accept()
 
         await self.send(text_data=json.dumps({
-            'message': 'connected - ' + str(user)
+            'message': 'connected'
         }))
 
     async def disconnect(self, close_code):
@@ -105,59 +93,50 @@ class RideRequestConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
+
         text_data_json = json.loads(text_data)
         message = text_data_json['message']
 
         GUID = message['GUID']
         location = message['location']
-        await database_sync_to_async(self.SearchClosest)(GUID, location)
+        is_client = bool(message['is_client'])
 
-        # Send message to room group
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': str(message)
-            }
-        )
+        # logger.error(is_client)
+        await database_sync_to_async(self.update_location)(GUID, is_client, location)
 
-    # Receive message from room group
-    async def chat_message(self, event):
-        message = event['message']
+        ride = await database_sync_to_async(self.check_mention)(GUID)
+        if ride:
+            await self.send(text_data=json.dumps({
+                'message': serializers.RideSerializer(ride).data
+            }))
+        else:
+            await self.send(text_data=json.dumps({
+                'message': serializers.RideSerializer(ride).data
+            }))
 
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({
-            'message': message
-        }))
+    def update_location(self, GUID, is_client, data):
 
-    def search_closest(self, GUID, data):
-        location, created = ServiceModels.Location.objects.get_or_create()
+        location, created = ServiceModels.Location.objects.get_or_create(user__GUID=GUID)
         if created:
             location.user = CoreModels.CoreUser.objects.get(GUID=GUID)
-        else:
-            location.latitude = data['latitude']
-            location.longitude = data['longitude']
-            location.save()
+            location.is_client = bool(is_client)
+
+        location.latitude = data['latitude']
+        location.longitude = data['longitude']
+        location.save()
+
         return True
 
-    def dist_between_two_lat_lon(self, *args):
-        lat1, lat2, long1, long2 = map(radians, args)
+    def check_mention(self, GUID):
 
-        dist_lats = abs(lat2 - lat1)
-        dist_longs = abs(long2 - long1)
-        a = sin(dist_lats/2)**2 + cos(lat1) * cos(lat2) * sin(dist_longs/2)**2
-        c = asin(sqrt(a)) * 2
-        radius_earth = 6378
-        # the "Earth radius" R varies from 6356.752 km at the poles to 6378.137 km at the equator.
-        return c * radius_earth
+        mention, created = ServiceModels.Mention.objects.get_or_create(user__GUID=GUID)
+        if created:
+            mention.user = CoreModels.CoreUser.objects.get(GUID=GUID)
+            mention.active = False
 
-    def find_closest_lat_lon(self, data, v):
-        try:
-            return min(
-                data,
-                key=lambda p: dist_between_two_lat_lon(v['lat'], v['lon'], p['lat'], p['lon']))
-        except TypeError:
-            print('Not a list or not a number.')
+        if mention.active:
+            ride = mention.ride
 
-    def get_name(self):
-        return CoreModels.CoreUser.objects.all().first().GUID
+            return ride
+
+        return False

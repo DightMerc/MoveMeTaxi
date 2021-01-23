@@ -17,6 +17,7 @@ from django.contrib import admin
 from django.urls import path
 import api.views as views
 
+
 urlpatterns = [
 
     path('language/', views.LanguageListView.as_view()),
@@ -32,8 +33,7 @@ urlpatterns = [
     path('<str:GUID>/ride/<str:RIDE_GUID>/info/', views.RideInfo.as_view()),
     path('<str:GUID>/ride/<str:RIDE_GUID>/status/', views.RideStatus.as_view()),
     path('<str:GUID>/ride/<str:RIDE_GUID>/review/', views.RideReview.as_view()),
+    path('<str:GUID>/ride/<str:RIDE_GUID>/accept/', views.RideAccept.as_view()),
 
-    path('<str:GUID>/fare/', views.FarePolicyView.as_view())
-
-
+    path('<str:GUID>/fare/', views.FarePolicyView.as_view()),
 ]
