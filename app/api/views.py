@@ -12,11 +12,15 @@ import api.serializers as serializers
 import json
 import random
 
+from pyfcm import FCMNotification
+
 import os
 from twilio.rest import Client as TwilioClient
 
 import logging
 logger = logging.getLogger(__name__)
+
+push_service = FCMNotification(api_key=os.environ.get("FCM_TOKEN", "empty_key"))
 
 
 class DeviceView(APIView):
@@ -654,10 +658,75 @@ class RideStatus(APIView):
                 status=status.HTTP_404_NOT_FOUND
                 )
 
+        if not ride.active:
+            return Response(
+                'ride with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
         return Response(
             serializers.RideStatusSerializer(ride.status).data,
             status=status.HTTP_200_OK
         )
+
+    def post(self, request, version, GUID, RIDE_GUID):
+
+        try:
+            data = json.loads(request.body)
+        except Exception as e:
+            return Response(
+                'request body not set',
+                status=status.HTTP_400_BAD_REQUEST
+                )
+
+        try:
+            Device = models.Device.objects.get(GUID=GUID)
+        except models.Device.DoesNotExist:
+            return Response(
+                'device with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not Device.active:
+            return Response(
+                'device with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        try:
+            ride = models.Ride.objects.get(GUID=RIDE_GUID)
+        except models.Ride.DoesNotExist:
+            return Response(
+                'ride with selected GUID not found',
+                status=status.HTTP_404_NOT_FOUND
+                )
+
+        if not ride.active:
+            return Response(
+                'ride with selected GUID is inactive',
+                status=status.HTTP_403_FORBIDDEN
+                )
+
+        try:
+            ride_status = data['status']
+        except Exception as e:
+            return Response(
+                    'status not set',
+                    status=status.HTTP_400_BAD_REQUEST
+                    )
+
+        try:
+            ride_status = models.RideStatus.objects.get(GUID=ride_status)
+        except Exception as e:
+            return Response(
+                    'status with selected GUID not found',
+                    status=status.HTTP_400_BAD_REQUEST
+                    )
+        
+        ride.status = ride_status
+        ride.save()
+
+        # sendNotification(users, title, text)
 
 
 class RideReview(APIView):
@@ -842,4 +911,20 @@ class RideAccept(APIView):
             return Response(
                 f'ride has been already accepted by another driver: {ride.driver.user.GUID}',
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+
+def sendNotification(users, title, text):
+
+    message_title = title
+    message_body = text
+    for user in users:
+
+        device = user.devices.filter(active=True).first()
+        registration_id = device.notificationID
+
+        result = push_service.notify_single_device(
+            registration_id=registration_id,
+            message_title=message_title,
+            message_body=message_body
             )

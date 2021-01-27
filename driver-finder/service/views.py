@@ -168,12 +168,16 @@ def find_closest_driver(location, radius, rideGUID, fare_policy):
                                 min = distance
                                 target_driver = driver_location.user
 
-            radius += radius_incrementation
-            if radius == radius_max:
+            if radius == radius_max - radius_incrementation:
                 break
+            else:
+                radius += radius_incrementation
 
-            if counter == 15:
-                break
+            # TODO check disabling algorythm
+            
+            # if counter == 15:
+            #     break
+
             if newDriverDetected:
                 logger.error(f'waiting for driver answer: {driver_answer_pause}')
                 time.sleep(driver_answer_pause)
@@ -189,6 +193,14 @@ def markDriverAsValid(user, ride):
 
     mention = Mention.objects.get(user__GUID=user)
     mention.active = True
+    mention.ride = ride
+    mention.save()
+
+
+def markDriverAsInValid(user, ride):
+
+    mention = Mention.objects.get(user__GUID=user)
+    mention.active = False
     mention.ride = ride
     mention.save()
 

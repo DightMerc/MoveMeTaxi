@@ -111,7 +111,7 @@ class RideRequestConsumer(AsyncWebsocketConsumer):
             }))
         else:
             await self.send(text_data=json.dumps({
-                'message': serializers.RideSerializer(ride).data
+                'message': False
             }))
 
     def update_location(self, GUID, is_client, data):
